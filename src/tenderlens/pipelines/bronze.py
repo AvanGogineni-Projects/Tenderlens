@@ -1,31 +1,17 @@
 """Lakeflow pipeline, bronze layer: one row per notice XML, read incrementally from the raw volume."""
 
+from pyspark import cloudpickle
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField, StructType
 
 from tenderlens import ted
 
-SCHEMA = StructType([StructField(n, StringType()) for n in
-                     ("package_id", "file_name", "publication_number", "notice_type", "xml")])
+# Workers can't import tenderlens; ship this pure module with the UDF instead. (Functions defined in this
+# pipeline file can't be shipped: the runtime loads it through internal modules workers don't have.)
+cloudpickle.register_pickle_by_value(ted)
 
-
-def explode(batches, chunk: int = 500):
-    """Unpack packages into notice rows, yielding small frames so memory stays flat (a package is ~60 MB
-    of XML once unpacked)."""
-    import pandas as pd
-
-    for b in batches:
-        for path, content in zip(b["path"], b["content"], strict=True):
-            pid = path.rsplit("/", 1)[-1].removesuffix(".tar.gz")
-            rows = []
-            for n in ted.notices(content):
-                rows.append({"package_id": pid, **n})
-                if len(rows) == chunk:
-                    yield pd.DataFrame(rows, columns=SCHEMA.fieldNames())
-                    rows = []
-            if rows:
-                yield pd.DataFrame(rows, columns=SCHEMA.fieldNames())
+SCHEMA = StructType([StructField(n, StringType()) for n in ted.NOTICE_COLUMNS])
 
 
 @dp.table(name="bronze_notices", comment="Raw eForms notice XML from TED daily packages, one row per notice.")
@@ -37,5 +23,5 @@ def bronze_notices():
            .option("pathGlobFilter", "*.tar.gz")
            .option("cloudFiles.maxFilesPerTrigger", 8)  # small micro-batches: bounded memory, committed progress
            .load(spark.conf.get("tenderlens.raw_path")))  # noqa: F821
-    return (raw.select("path", "content").mapInPandas(explode, SCHEMA)
+    return (raw.select("path", "content").mapInPandas(ted.explode_packages, SCHEMA)
             .withColumn("ingested_at", F.current_timestamp()))
