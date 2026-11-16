@@ -107,3 +107,25 @@ def notices(data: bytes) -> Iterator[dict]:
                 "notice_type": kind,
                 "xml": raw.decode("utf-8", errors="replace"),
             }
+
+
+NOTICE_COLUMNS = ["package_id", "file_name", "publication_number", "notice_type", "xml"]
+
+
+def explode_packages(batches, chunk: int = 500):
+    """mapInPandas body for bronze: packages in, notice rows out, in small frames so memory stays flat
+    (a package is ~60 MB of XML once unpacked). Lives here, not in the pipeline file, so Spark can ship
+    it to workers by value."""
+    import pandas as pd
+
+    for b in batches:
+        for path, content in zip(b["path"], b["content"], strict=True):
+            pid = path.rsplit("/", 1)[-1].removesuffix(".tar.gz")
+            rows = []
+            for n in notices(content):
+                rows.append({"package_id": pid, **n})
+                if len(rows) == chunk:
+                    yield pd.DataFrame(rows, columns=NOTICE_COLUMNS)
+                    rows = []
+            if rows:
+                yield pd.DataFrame(rows, columns=NOTICE_COLUMNS)

@@ -28,7 +28,7 @@ resources:
 
   pipelines:
     bronze:
-      name: tenderlens-bronze
+      name: tenderlens-lakehouse  # bronze + silver
       catalog: ${var.catalog}
       schema: ${resources.schemas.tenderlens.name}
       serverless: true
@@ -37,7 +37,10 @@ resources:
       libraries:
         - file:
             path: ./src/tenderlens/pipelines/bronze.py
+        - file:
+            path: ./src/tenderlens/pipelines/silver.py
       configuration:
+        spark.sql.execution.arrow.maxRecordsPerBatch: "1000"  # notices are ~30 KB of XML each
         tenderlens.raw_path: /Volumes/${var.catalog}/${resources.schemas.tenderlens.name}/raw/ted/daily
 
   jobs:
