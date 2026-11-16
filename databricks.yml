@@ -38,7 +38,7 @@ resources:
         - file:
             path: ./src/tenderlens/pipelines/bronze.py
       configuration:
-        tenderlens.raw_path: /Volumes/${var.catalog}/${var.schema}/raw/ted/daily
+        tenderlens.raw_path: /Volumes/${var.catalog}/${resources.schemas.tenderlens.name}/raw/ted/daily
 
   jobs:
     daily:
@@ -59,7 +59,7 @@ resources:
           python_wheel_task:
             package_name: tenderlens
             entry_point: tenderlens-ingest
-            parameters: ["--volume", "/Volumes/${var.catalog}/${var.schema}/raw/ted"]
+            parameters: ["--volume", "/Volumes/${var.catalog}/${resources.schemas.tenderlens.name}/raw/ted"]
         - task_key: bronze
           depends_on:
             - task_key: ingest
