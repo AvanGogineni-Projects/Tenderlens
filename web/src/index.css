@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+/* Tenderlens: an analyst's terminal. Dark by default; every colour is a token so light mode is a swap. */
+:root {
+  --bg: #0d1014;
+  --panel: #13171d;
+  --raised: #1a1f27;
+  --line: #242b35;
+  --ink: #e9e6df;
+  --muted: #8b949f;
+  --signal: #b9f26b;   /* ending soon: the next tender */
+  --amber: #f2b544;    /* money */
+  --alarm: #ff6b5b;
+  --on-signal: #0d1014;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #f4f3ef;
+  --panel: #ffffff;
+  --raised: #faf9f6;
+  --line: #dedad1;
+  --ink: #15181d;
+  --muted: #5d6570;
+  --signal: #2f7d1f;
+  --amber: #8f5c00;
+  --alarm: #c2361f;
+  --on-signal: #ffffff;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #f4f3ef; --panel: #ffffff; --raised: #faf9f6; --line: #dedad1; --ink: #15181d; --muted: #5d6570;
+    --signal: #2f7d1f; --amber: #8f5c00; --alarm: #c2361f; --on-signal: #ffffff; color-scheme: light;
+  }
+}
+
+@theme {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-signal: var(--signal);
+  --color-amber: var(--amber);
+  --color-alarm: var(--alarm);
+  --color-on-signal: var(--on-signal);
+  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+html { background: var(--bg); color: var(--ink); }
+body { background: var(--bg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--signal); color: var(--on-signal); }
+
+.label { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.grid-bg {
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 30% 0%, black 0%, transparent 70%);
+}

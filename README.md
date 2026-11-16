@@ -4,7 +4,7 @@ Public-procurement intelligence on Databricks: every EU tender and award notice 
 into who buys what from whom, at what price, and when contracts end. Swedish suppliers are joined to
 the Bolagsverket company register.
 
-**Status:** milestones 1–3 done (ingest → bronze → silver → dbt gold), running daily on Databricks Free Edition. See [docs/plan.md](docs/plan.md).
+**Status:** milestones 1–3 done (ingest → bronze → silver → dbt gold), running daily on Databricks Free Edition; milestone 4 (Postgres export, API, web app) in progress. See [docs/plan.md](docs/plan.md).
 
 ## Layout
 
@@ -17,6 +17,10 @@ the Bolagsverket company register.
 | `src/tenderlens/pipelines/silver.py` | Lakeflow silver: parse once, typed tables, quarantine |
 | `src/tenderlens/fx.py` | ECB monthly rates → `dbt/seeds/fx_monthly.csv` |
 | `dbt/` | Gold: `fct_awards`, `dim_supplier` (+ Bolagsverket register and Bolagsvakt risk), `dim_buyer`, `contract_expiries`, `market_share`, with tests |
+| `src/tenderlens/export.py` | Prod job step: Sweden slice of gold → Postgres in one transaction (refuses to shrink awards by > half) |
+| `src/tenderlens/api.py`, `asgi.py` | FastAPI, read-only role per request; deployed on Vercel |
+| `migrations/` | Postgres serving schema |
+| `web/` | Vite + React + Tailwind app |
 | `databricks.yml` | Asset bundle: schema, volume, pipeline, daily job ingest → pipeline → dbt build (serverless) |
 
 ## Run
@@ -29,6 +33,14 @@ databricks bundle run daily         # ingest new packages, then refresh bronze
 ```
 
 The first run backfills 2024 → today (~700 packages, ~6.5 GB) into the volume, not your laptop.
+
+App locally (Postgres 17, then API on :8100 and web on :5180):
+
+```bash
+createdb tenderlens && DATABASE_URL=postgresql:///tenderlens .venv/bin/python -m tenderlens.db migrate
+DATABASE_URL=postgresql:///tenderlens .venv/bin/uvicorn tenderlens.api:app --app-dir src --port 8100
+npm --prefix web run dev -- --port 5180
+```
 
 dbt locally against the dev schema (short-lived OAuth token, nothing stored):
 
