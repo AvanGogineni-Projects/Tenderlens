@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: fct_awards
+    description: One row per (notice, lot, winning organisation). Values in the buyer's currency and EUR.
+    columns:
+      - name: award_id
+        data_tests: [unique, not_null]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_supplier'), field: supplier_key}
+              config: {where: "not supplier_is_person"}
+      - name: award_date
+        data_tests: [not_null]
+      - name: award_date_basis
+        data_tests:
+          - accepted_values:
+              arguments: {values: [award, signed, published]}
+      - name: contract_nature
+        data_tests:
+          - accepted_values:
+              arguments: {values: [works, supplies, services, combined]}
+              config: {where: "contract_nature is not null"}
+      - name: value_eur
+        description: Value in EUR at the award month's ECB rate; empty when the value is suspect.
+        data_tests:
+          - non_negative
+          - at_most:
+              arguments: {max_value: 5000000000}
+      - name: value_suspect
+        data_tests: [not_null]
+
+  - name: dim_supplier
+    columns:
+      - name: supplier_key
+        data_tests: [unique, not_null]
+      - name: swedish_orgnr
+        description: 10-digit Swedish org number when the supplier is Swedish.
+
+  - name: dim_buyer
+    columns:
+      - name: buyer_key
+        data_tests: [unique, not_null]
+
+  - name: contract_expiries
+    columns:
+      - name: award_id
+        data_tests: [unique, not_null]
+
+  - name: market_share
+    columns:
+      - name: share
+        data_tests: [not_null]

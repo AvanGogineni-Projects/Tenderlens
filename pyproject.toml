@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6", "pandas>=2"]
+dev = ["pytest>=8", "ruff>=0.6", "pandas>=2", "dbt-databricks>=1.10,<2"]
 
 [project.scripts]
 tenderlens-ingest = "tenderlens.ingest:main"
