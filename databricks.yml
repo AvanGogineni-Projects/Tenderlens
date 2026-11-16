@@ -6,6 +6,9 @@ variables:
     default: workspace
   schema:
     default: tenderlens
+  warehouse_id:
+    lookup:
+      warehouse: Serverless Starter Warehouse
 
 artifacts:
   wheel:
@@ -55,6 +58,11 @@ resources:
             client: "3"
             dependencies:
               - ./dist/*.whl
+        - environment_key: dbt
+          spec:
+            client: "3"
+            dependencies:
+              - dbt-databricks>=1.10,<2
       tasks:
         - task_key: ingest
           environment_key: default
@@ -68,6 +76,16 @@ resources:
             - task_key: ingest
           pipeline_task:
             pipeline_id: ${resources.pipelines.bronze.id}
+        - task_key: gold
+          depends_on:
+            - task_key: bronze
+          environment_key: dbt
+          dbt_task:
+            project_directory: ./dbt
+            commands: ["dbt build"]  # seeds, models and tests; a failing test fails the run
+            warehouse_id: ${var.warehouse_id}
+            catalog: ${var.catalog}
+            schema: ${resources.schemas.tenderlens.name}
 
 targets:
   dev:

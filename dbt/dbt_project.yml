@@ -1,0 +1,23 @@
+name: tenderlens
+version: "0.1.0"
+profile: tenderlens
+config-version: 2
+
+model-paths: [models]
+seed-paths: [seeds]
+macro-paths: [macros]
+test-paths: [tests]
+target-path: target
+clean-targets: [target, dbt_packages, logs]
+
+models:
+  tenderlens:
+    staging:
+      +materialized: table  # each is read several times downstream; compute once
+    gold:
+      +materialized: table
+
+seeds:
+  tenderlens:
+    fx_monthly:
+      +column_types: {month: date, currency: string, per_eur: double}

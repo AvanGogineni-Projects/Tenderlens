@@ -10,3 +10,7 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check src tests
       - run: pytest -q
+      - name: dbt parse (compiles every model and test without a warehouse)
+        working-directory: dbt
+        env: {DBT_HOST: example.cloud.databricks.com, DBT_HTTP_PATH: /sql/1.0/warehouses/x, DBT_TOKEN: x, DBT_SCHEMA: ci}
+        run: dbt parse --profiles-dir profiles --no-partial-parse

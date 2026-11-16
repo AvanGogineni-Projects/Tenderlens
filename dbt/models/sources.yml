@@ -1,0 +1,9 @@
+version: 2
+sources:
+  - name: silver
+    schema: "{{ target.schema }}"
+    tables:
+      - name: silver_notices
+      - name: silver_lots
+      - name: silver_organisations
+      - name: silver_awards
