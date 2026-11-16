@@ -1,0 +1,72 @@
+bundle:
+  name: tenderlens
+
+variables:
+  catalog:
+    default: workspace
+  schema:
+    default: tenderlens
+
+artifacts:
+  wheel:
+    type: whl
+    path: .
+    build: python3 -m pip wheel --no-deps -w dist .
+
+resources:
+  schemas:
+    tenderlens:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+
+  volumes:
+    raw:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.tenderlens.name}
+      name: raw
+      comment: TED daily packages as downloaded (tar.gz), the replayable source of truth.
+
+  pipelines:
+    bronze:
+      name: tenderlens-bronze
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.tenderlens.name}
+      serverless: true
+      channel: CURRENT
+      root_path: ./src
+      libraries:
+        - file:
+            path: ./src/tenderlens/pipelines/bronze.py
+      configuration:
+        tenderlens.raw_path: /Volumes/${var.catalog}/${var.schema}/raw/ted/daily
+
+  jobs:
+    daily:
+      name: tenderlens-daily
+      schedule:
+        quartz_cron_expression: "0 0 9 * * ?"  # TED publishes overnight; paused automatically in dev
+        timezone_id: Europe/Stockholm
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
+            dependencies:
+              - ./dist/*.whl
+      tasks:
+        - task_key: ingest
+          environment_key: default
+          max_retries: 2
+          python_wheel_task:
+            package_name: tenderlens
+            entry_point: tenderlens-ingest
+            parameters: ["--volume", "/Volumes/${var.catalog}/${var.schema}/raw/ted"]
+        - task_key: bronze
+          depends_on:
+            - task_key: ingest
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.bronze.id}
+
+targets:
+  dev:
+    mode: development
+    default: true
