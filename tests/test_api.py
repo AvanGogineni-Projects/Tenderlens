@@ -59,3 +59,9 @@ def test_cdn_caches_successes_only(client):
     assert "s-maxage=3600" in client.get("/v1/stats").headers["cache-control"]
     assert "cache-control" not in client.get("/v1/suppliers/nope").headers
     assert "cache-control" not in client.get("/health").headers  # health stays live
+
+
+def test_portfolio_origin_may_read_stats(client):
+    r = client.get("/v1/stats", headers={"Origin": "https://avangogineni-projects.github.io"})
+    assert r.headers["access-control-allow-origin"] == "https://avangogineni-projects.github.io"
+    assert "access-control-allow-origin" not in client.get("/v1/stats", headers={"Origin": "https://evil.example"}).headers

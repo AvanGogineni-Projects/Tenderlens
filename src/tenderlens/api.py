@@ -38,7 +38,9 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Tenderlens", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(","),
+# The portfolio's live "contract clock" reads /v1/stats from GitHub Pages; the app itself is same-origin.
+CORS_ORIGINS = "http://localhost:5173,https://avangogineni-projects.github.io"
+app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("CORS_ORIGINS", CORS_ORIGINS).split(","),
                    allow_methods=["GET"], allow_headers=["Content-Type"])
 
 
