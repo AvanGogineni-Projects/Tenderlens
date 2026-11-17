@@ -53,3 +53,9 @@ def test_requests_cannot_write(client):
     with api.pool.connection() as c, pytest.raises(psycopg.errors.InsufficientPrivilege), c.transaction():
         c.execute("set local role tenderlens_app")
         c.execute("insert into export_runs (source_schema, row_counts) values ('x', '{}')")
+
+
+def test_cdn_caches_successes_only(client):
+    assert "s-maxage=3600" in client.get("/v1/stats").headers["cache-control"]
+    assert "cache-control" not in client.get("/v1/suppliers/nope").headers
+    assert "cache-control" not in client.get("/health").headers  # health stays live

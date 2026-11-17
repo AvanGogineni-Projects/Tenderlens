@@ -42,6 +42,19 @@ app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("CORS_ORIGINS", 
                    allow_methods=["GET"], allow_headers=["Content-Type"])
 
 
+# Data changes once a day, so let Vercel's CDN answer repeats: each URL reads Postgres at most once an hour.
+# (Elvarsel blew through Supabase's 5 GB free egress without this.) Errors are never cached.
+CACHE_CONTROL = "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
+
+
+@app.middleware("http")
+async def cache_headers(request, call_next):
+    response = await call_next(request)
+    if request.method == "GET" and request.url.path.startswith("/v1/") and response.status_code == 200:
+        response.headers["Cache-Control"] = CACHE_CONTROL
+    return response
+
+
 def read_db():
     with db_pool().connection() as conn, conn.transaction():
         conn.execute("set local role tenderlens_app")
