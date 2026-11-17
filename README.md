@@ -4,7 +4,15 @@ Public-procurement intelligence on Databricks: every EU tender and award notice 
 into who buys what from whom, at what price, and when contracts end. Swedish suppliers are joined to
 the Bolagsverket company register.
 
-**Status:** milestones 1–3 done (ingest → bronze → silver → dbt gold), running daily on Databricks Free Edition; milestone 4 (Postgres export, API, web app) in progress. See [docs/plan.md](docs/plan.md).
+**Live:** https://tenderlens-eosin.vercel.app · **Status:** all five milestones done ([docs/plan.md](docs/plan.md)).
+Production runs daily at 09:00 Stockholm: ingest → Lakeflow bronze/silver → `dbt build` → export to Postgres.
+
+| | Numbers (17 Nov 2026) |
+|---|---|
+| Bronze | 728 TED daily packages, 2,443,328 notices (2024 → today) |
+| Silver | 7.9M lots, 9.8M organisations, 8.0M award rows; 1,892 quarantined (legacy schema), 0 parse errors |
+| Gold | 3.84M awards, 512k suppliers, 83k buyers; 32 dbt tests; full build < 1 min |
+| App | Sweden slice: 72k awards, 13.7k suppliers, 1,057 buyers (Supabase, eu-west-3) |
 
 ## Layout
 
@@ -26,13 +34,16 @@ the Bolagsverket company register.
 ## Run
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/pytest -q
-databricks bundle deploy            # needs `databricks auth login` first
-databricks bundle run daily         # ingest new packages, then refresh bronze
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev,api]"
+.venv/bin/pytest -q                       # export + API tests use Postgres (TEST_DATABASE_URL)
+databricks bundle deploy                  # dev target: prefixed schema, schedule paused (needs `databricks auth login`)
+databricks bundle run daily               # ingest → bronze/silver → dbt build
+databricks bundle deploy -t prod          # prod target: schedule live, adds the export step
 ```
 
-The first run backfills 2024 → today (~700 packages, ~6.5 GB) into the volume, not your laptop.
+The first run backfills 2024 → today (~730 packages, ~6.5 GB) into the volume, not your laptop. The prod export
+reads the Postgres connection string from the Databricks secret `tenderlens/database_url`; the web app reads
+`DATABASE_URL` (transaction pooler) from Vercel's environment.
 
 App locally (Postgres 17, then API on :8100 and web on :5180):
 
@@ -54,3 +65,13 @@ Refresh inputs by hand (shortcuts, see the comments in the code):
 .venv/bin/python -m tenderlens.fx eurofxref-hist.csv dbt/seeds/fx_monthly.csv   # ECB rates
 databricks fs cp --overwrite companies.parquet dbfs:/Volumes/workspace/<schema>/raw/bolagsvakt/   # register
 ```
+
+## Known limits
+
+- Framework agreements report a ceiling that every supplier on the framework repeats, so summed spend overstates
+  what is billed; `framework` lets queries separate them.
+- About two-thirds of award dates come from the contract signing date (`award_date_basis`); end dates are
+  estimates when a notice only gives a duration.
+- Values over EUR 5bn, or more than twice the notice's own total for ordinary contracts, are flagged
+  (`value_suspect`) and left out of EUR totals.
+- Databricks Free Edition is for non-commercial use; the data is open Delta, so a paid workspace is a target change.
