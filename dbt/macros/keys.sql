@@ -18,7 +18,9 @@ case
     then concat('SWE:', {{ swedish_orgnr(company_id) }})
   when length(regexp_replace(upper(coalesce({{ company_id }}, '')), '[^0-9A-Z]', '')) >= 5
     then concat(coalesce({{ country }}, '?'), ':', regexp_replace(upper({{ company_id }}), '[^0-9A-Z]', ''))
-  else concat(coalesce({{ country }}, '?'), ':name:', lower(trim(regexp_replace({{ name }}, '\\s+', ' '))))
+  when {{ name }} is not null
+    then concat(coalesce({{ country }}, '?'), ':name:', lower(trim(regexp_replace({{ name }}, '\\s+', ' '))))
+  else concat('unnamed:', {{ publication_number }}, ':', {{ org_ref }})  -- no id, no name: never linked
 end
 {%- endmacro %}
 

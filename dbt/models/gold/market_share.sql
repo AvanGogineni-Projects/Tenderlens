@@ -10,6 +10,8 @@ with by_supplier as (
         sum(value_eur) as value_eur
     from {{ ref('fct_awards') }}
     where value_eur > 0 and not supplier_is_person  -- a share of a zero-value market means nothing
+      -- notices are collected from 2024; earlier award years hold only stragglers, so shares there mislead
+      and year(award_date) >= 2024
     group by all
 )
 select

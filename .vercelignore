@@ -1,0 +1,13 @@
+# Only the API (asgi.py, src/, requirements.txt, migrations/) and web/ are needed on Vercel.
+.venv
+dbt
+tests
+scripts
+resources
+docs
+databricks.yml
+.databricks
+web/node_modules
+web/dist
+# Vercel must install requirements.txt (pyproject lists only the pipeline deps); asgi.py imports from src/
+pyproject.toml

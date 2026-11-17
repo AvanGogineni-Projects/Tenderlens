@@ -91,3 +91,22 @@ targets:
   dev:
     mode: development
     default: true
+  prod:
+    mode: production  # real schema names, schedule runs
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/prod
+    resources:
+      jobs:
+        daily:
+          tasks:
+            # prod only: copies the Sweden slice of gold into the app's Postgres
+            # (connection string in secret scope `tenderlens`, key `database_url`)
+            - task_key: export
+              depends_on:
+                - task_key: gold
+              environment_key: default
+              max_retries: 2
+              python_wheel_task:
+                package_name: tenderlens
+                entry_point: tenderlens-export
+                parameters: ["--schema", "${var.catalog}.${resources.schemas.tenderlens.name}"]

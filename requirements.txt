@@ -1,0 +1,4 @@
+# Serving: what the API needs. Vercel installs only this, so keep it small.
+fastapi>=0.115
+psycopg[binary]>=3.2
+psycopg-pool>=3.2

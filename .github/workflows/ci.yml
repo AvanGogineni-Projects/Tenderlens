@@ -3,14 +3,36 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tenderlens_test
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tenderlens_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
-      - run: pip install -e ".[dev]"
-      - run: ruff check src tests
+      - run: pip install -e ".[dev,api]"
+      - run: ruff check asgi.py src tests
       - run: pytest -q
       - name: dbt parse (compiles every model and test without a warehouse)
         working-directory: dbt
         env: {DBT_HOST: example.cloud.databricks.com, DBT_HTTP_PATH: /sql/1.0/warehouses/x, DBT_TOKEN: x, DBT_SCHEMA: ci}
         run: dbt parse --profiles-dir profiles --no-partial-parse
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run: {working-directory: web}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22", cache: npm, cache-dependency-path: web/package-lock.json}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
