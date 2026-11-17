@@ -47,7 +47,7 @@ TED daily .tar.gz ──ingest job──▶ UC Volume raw/ted/daily/{yyyy}/     
 - **Parsing logic is plain Python** (stdlib XML) and runs inside Spark via `mapInPandas`, so it is
   unit-tested locally without a cluster.
 
-## Milestones
+## Milestones (all done, 17 Nov 2026)
 
 1. **Ingest → bronze.** Package discovery, download with retry, atomic write to a volume, Auto Loader
    bronze table with expectations, daily job, backfill 2024 → today.
